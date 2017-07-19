@@ -1,0 +1,17 @@
+{
+    "type": "message|authentication",
+
+    "channel": 1,
+
+    "data": {
+        "token": "12345",
+        "bindings": [
+
+        ],
+
+        "origin": "Server #1",
+        "origin_type": "game",
+        "author": "Fishy",
+        "message": "Hello there",
+    }
+}

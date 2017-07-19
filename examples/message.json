@@ -1,0 +1,12 @@
+{
+    "type": "message",
+
+    "channel": 1,
+
+    "data": {
+        "origin": "Server #1",
+        "origin_type": "game",
+        "author": "Fishy",
+        "message": "Hello there"
+    }
+}
