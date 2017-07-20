@@ -2,7 +2,6 @@
     "type": "authentication",
 
     "data": {
-        "token": "12345",
-        "bindings": [1,2]
+        "token": "12345"
     }
 }

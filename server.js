@@ -18,7 +18,12 @@ log.add(log.transports.Console, {
     timestamp: true
 });
 
-log.add(log.transports.File, { filename: process.env.STORAGE_DIR + process.env.LOG_FILE});
+log.add(log.transports.File, {
+    level: process.env.VERBOSE_LEVEL,
+    prettyPrint: true,
+    filename: process.env.STORAGE_DIR + process.env.LOG_FILE,
+    timestamp: true
+});
 
 const wss = new WebSocket.Server({ port: process.env.PORT || 8080 }, () => {
     log.info('Server started on port ' + wss.options.port);
@@ -39,7 +44,6 @@ wss.on('connection', (ws) => {
                 log.debug('Successfully authenticated client');
                 sendResponse(ws, true, {});
                 authenticated[ws] = true;
-                channelBindings[ws] = json.data.bindings;
             }
             else {
                 log.debug('Failed to authenticate client');
@@ -47,16 +51,21 @@ wss.on('connection', (ws) => {
             }
         }
 
+        if (json.type == 'bindings') {
+            log.debug('Successfully binded client');
+            channelBindings[ws] = json.data.bindings;
+            sendResponse(ws, true, {'response':'Successfully binded to ' + channelBindings[ws].join(', ')});
+        }
+
         if (json.type == 'message') {
             if (!authenticated[ws]) {
                 log.debug('Client attempted to send unauthenticated message');
-
                 sendResponse(ws, false, {'error': 'Unauthenticated response'});
-
-                return;
+            } else {
+                log.debug('Successfully broadcasted to all');
+                sendResponse(ws, true, {});
+                broadcastToAll(ws, json.channel, json.data);
             }
-
-            broadcastToAll(json.channel, json.data);
         }
 
     });
@@ -66,21 +75,19 @@ function sendResponse(ws, success, data) {
     ws.send(JSON.stringify({'success':success, 'response':data}));
 }
 
-function broadcastToAll(channel, message) {
+function broadcastToAll(origin, channel, message) {
     wss.clients.forEach((client) => {
-        if (channelBindings[client].includes(channel) && client.readyState === WebSocket.OPEN) {
+        if (client != origin && isListening(client, channel) && client.readyState === WebSocket.OPEN) {
             log.debug('Sent to client');
             client.send(JSON.stringify(message));
         }
     });
 }
 
-/*
-wss.broadcast = function broadcast(data) {
-  wss.clients.forEach(function each(client) {
-    if (client.readyState === WebSocket.OPEN) {
-      client.send(data);
+function isListening(client, channel) {
+    if (!channelBindings[client] || channelBindings[client].length == 0 || channelBindings[client].includes(channel)) {
+        return true;
+    } else  {
+        return false;
     }
-  });
-};
-*/
+}
