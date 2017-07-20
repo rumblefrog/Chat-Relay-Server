@@ -1,9 +1,10 @@
 "use strict";
 
 require('dotenv').config();
+const net = require('net');
 const log = require('winston');
-const WebSocket = require('ws');
 
+const clients = [];
 const authenticated = {};
 const channelBindings = {};
 
@@ -25,61 +26,75 @@ log.add(log.transports.File, {
     timestamp: true
 });
 
-const wss = new WebSocket.Server({ port: process.env.PORT || 8080 }, () => {
-    log.info('Server started on port ' + wss.options.port);
+const server = net.createServer().listen(process.env.PORT || 8080);
+
+server.on('listening', () => {
+    log.info('Server started on port ' + server.address().port);
 });
 
-wss.on('connection', (ws) => {
+server.on('connection', (socket) => {
 
-    authenticated[ws] = false;
+    socket.name = socket.remoteAddress + ":" + socket.remotePort;
+
+    clients.push(socket);
+
+    authenticated[socket] = false;
 
     log.debug('A client connected');
 
-    ws.on('message', (message) => {
+    socket.on('data', (data) => {
 
-        const json = JSON.parse(message);
+        const json = JSON.parse(data);
 
         if (json.type == 'authentication') {
             if (json.data.token == process.env.APP_KEY) {
                 log.debug('Successfully authenticated client');
-                sendResponse(ws, true, {});
-                authenticated[ws] = true;
+                sendResponse(socket, true, {});
+                authenticated[socket] = true;
             }
             else {
                 log.debug('Failed to authenticate client');
-                sendResponse(ws, false, {'error': 'Invalid token'});
+                sendResponse(socket, false, {'error': 'Invalid token'});
             }
         }
 
         if (json.type == 'bindings') {
             log.debug('Successfully binded client');
-            channelBindings[ws] = json.data.bindings;
-            sendResponse(ws, true, {'response':'Successfully binded to ' + channelBindings[ws].join(', ')});
+            channelBindings[socket] = json.data.bindings;
+            sendResponse(socket, true, {'response':'Successfully binded to ' + channelBindings[socket].join(', ')});
         }
 
         if (json.type == 'message') {
-            if (!authenticated[ws]) {
+            if (!authenticated[socket]) {
                 log.debug('Client attempted to send unauthenticated message');
-                sendResponse(ws, false, {'error': 'Unauthenticated response'});
+                sendResponse(socket, false, {'error': 'Unauthenticated response'});
             } else {
                 log.debug('Successfully broadcasted to all');
-                sendResponse(ws, true, {});
-                broadcastToAll(ws, json.channel, json.data);
+                sendResponse(socket, true, {});
+                broadcastToAll(socket, json.channel, json.data);
             }
         }
 
     });
+
+    socket.on('end', () => {
+        clients.splice(clients.indexOf(socket), 1);
+    });
+
+    socket.on('error', (err) => {
+        log.warn('An error has occured: ' + err);
+    });
 });
 
-function sendResponse(ws, success, data) {
-    ws.send(JSON.stringify({'success':success, 'response':data}));
+function sendResponse(socket, success, data) {
+    socket.write(JSON.stringify({'success':success, 'response':data}));
 }
 
 function broadcastToAll(origin, channel, message) {
-    wss.clients.forEach((client) => {
-        if (client != origin && isListening(client, channel) && client.readyState === WebSocket.OPEN) {
+    clients.forEach((client) => {
+        if (client != origin && isListening(client, channel)) {
             log.debug('Sent to client');
-            client.send(JSON.stringify(message));
+            client.write(JSON.stringify(message));
         }
     });
 }
