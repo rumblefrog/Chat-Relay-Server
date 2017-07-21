@@ -39,12 +39,20 @@ server.on('connection', (socket) => {
     clients.push(socket);
 
     authenticated[socket] = false;
+    channelBindings[socket] = [];
 
     log.debug('A client connected');
 
     socket.on('data', (data) => {
 
-        const json = JSON.parse(data);
+        var json;
+
+        try {
+            json = JSON.parse(data);
+        } catch (e) {
+            sendResponse(socket, false, {'error': 'Invalid payload'});
+            return;
+        }
 
         if (json.type == 'authentication') {
             if (json.data.token == process.env.APP_KEY) {
@@ -79,9 +87,12 @@ server.on('connection', (socket) => {
 
     socket.on('end', () => {
         clients.splice(clients.indexOf(socket), 1);
+        log.debug('Removed client from array');
     });
 
     socket.on('error', (err) => {
+        clients.splice(clients.indexOf(socket), 1);
+        log.debug('Removed client from array');
         log.warn('An error has occured: ' + err);
     });
 });
