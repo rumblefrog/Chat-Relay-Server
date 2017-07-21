@@ -50,36 +50,36 @@ server.on('connection', (socket) => {
         try {
             json = JSON.parse(data);
         } catch (e) {
-            sendResponse(socket, false, {'error': 'Invalid payload'});
+            sendResponse(socket, false, 'invalid', {'error': 'Invalid payload'});
             return;
         }
 
         if (json.type == 'authentication') {
             if (json.data.token == process.env.APP_KEY) {
                 log.debug('Successfully authenticated client');
-                sendResponse(socket, true, {});
+                sendResponse(socket, true, 'authentication', {});
                 authenticated[socket] = true;
             }
             else {
                 log.debug('Failed to authenticate client');
-                sendResponse(socket, false, {'error': 'Invalid token'});
+                sendResponse(socket, false, 'authentication', {'error': 'Invalid token'});
             }
         }
 
         if (json.type == 'bindings') {
             log.debug('Successfully binded client');
             channelBindings[socket] = json.data.bindings;
-            sendResponse(socket, true, {'response':'Successfully binded to ' + channelBindings[socket].join(', ')});
+            sendResponse(socket, true, 'bindings', {'response':'Successfully binded to ' + channelBindings[socket].join(', ')});
         }
 
         if (json.type == 'message') {
             if (!authenticated[socket]) {
                 log.debug('Client attempted to send unauthenticated message');
-                sendResponse(socket, false, {'error': 'Unauthenticated response'});
+                sendResponse(socket, false, 'message', {'error': 'Unauthenticated response'});
             } else {
                 log.debug('Successfully broadcasted to all');
-                sendResponse(socket, true, {});
-                broadcastToAll(socket, json.channel, json.data);
+                sendResponse(socket, true, 'sent', {});
+                broadcastToAll(socket, json.data.channel, {'success':true, 'type':'message', 'response':json.data});
             }
         }
 
@@ -97,8 +97,8 @@ server.on('connection', (socket) => {
     });
 });
 
-function sendResponse(socket, success, data) {
-    socket.write(JSON.stringify({'success':success, 'response':data}));
+function sendResponse(socket, success, type, data) {
+    socket.write(JSON.stringify({'success':success, 'type':type, 'response':data}));
 }
 
 function broadcastToAll(origin, channel, message) {
