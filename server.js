@@ -93,7 +93,7 @@ server.on('connection', (socket) => {
     socket.on('error', (err) => {
         clients.splice(clients.indexOf(socket), 1);
         log.debug('Removed client from array');
-        log.warn('An error has occured: ' + err);
+        log.debug(err);
     });
 });
 
