@@ -1,9 +1,9 @@
 {
     "success": true|false,
 
+    "type": "message|authentication|bindings|ping"
+
     "response": {
-
-    },
-
-    "error": ""
+        "error": ""
+    }
 }
