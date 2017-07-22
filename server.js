@@ -76,17 +76,17 @@ server.on('connection', (socket) => {
         if (json.type == 'bindings') {
             log.info('Successfully binded client');
             channelBindings[socket] = json.data.bindings;
-            sendResponse(socket, true, 'bindings', `Successfully binded to  + ${channelBindings[socket].join(', ')}`);
+            sendResponse(socket, true, 'bindings', `Successfully binded to ${channelBindings[socket].join(', ')}`);
         }
 
         if (json.type == 'message') {
             if (!authenticated[socket]) {
-                log.debug('Client attempted to send unauthenticated message');
+                log.warn('Client attempted to send unauthenticated message');
                 sendResponse(socket, false, 'message', {'error': 'Unauthenticated response'});
             } else {
                 log.debug('Successfully broadcasted to all on channel ' + json.data.channel);
                 sendResponse(socket, true, 'sent', {});
-                broadcastToAll(socket, json.data.channel, {'success':true, 'type':'message', 'response':json.data});
+                broadcastToAll(socket, parseInt(json.data.channel), {'success':true, 'type':'message', 'response':json.data});
             }
         }
 
