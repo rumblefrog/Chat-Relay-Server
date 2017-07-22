@@ -109,7 +109,7 @@ function sendResponse(socket, success, type, data) {
 
 function broadcastToAll(origin, channel, message) {
     clients.forEach((client) => {
-        if (client != origin && isListening(client, channel)) {
+        if (client != origin) {
             log.debug('Sent to client');
             client.write(JSON.stringify(message));
         }
