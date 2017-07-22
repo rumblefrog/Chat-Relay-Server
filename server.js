@@ -41,7 +41,7 @@ server.on('connection', (socket) => {
     authenticated[socket] = false;
     channelBindings[socket] = [];
 
-    log.debug('A client connected');
+    log.info('A client connected');
 
     socket.on('data', (data) => {
 
@@ -54,9 +54,16 @@ server.on('connection', (socket) => {
             return;
         }
 
+        if (json.type == 'ping') {
+
+            let binded = (!channelBindings || channelBindings[socket].length == 0) ? false : true;
+
+            sendResponse(socket, true, {'authenticated':authenticated[socket], 'binded':binded});
+        }
+
         if (json.type == 'authentication') {
             if (json.data.token == process.env.APP_KEY) {
-                log.debug('Successfully authenticated client');
+                log.info('Successfully authenticated client');
                 sendResponse(socket, true, 'authentication', {});
                 authenticated[socket] = true;
             }
@@ -67,9 +74,9 @@ server.on('connection', (socket) => {
         }
 
         if (json.type == 'bindings') {
-            log.debug('Successfully binded client');
+            log.info('Successfully binded client');
             channelBindings[socket] = json.data.bindings;
-            sendResponse(socket, true, 'bindings', {'response':'Successfully binded to ' + channelBindings[socket].join(', ')});
+            sendResponse(socket, true, 'bindings', `Successfully binded to  + ${channelBindings[socket].join(', ')}`);
         }
 
         if (json.type == 'message') {
@@ -77,7 +84,7 @@ server.on('connection', (socket) => {
                 log.debug('Client attempted to send unauthenticated message');
                 sendResponse(socket, false, 'message', {'error': 'Unauthenticated response'});
             } else {
-                log.debug('Successfully broadcasted to all');
+                log.debug('Successfully broadcasted to all on channel ' + json.data.channel);
                 sendResponse(socket, true, 'sent', {});
                 broadcastToAll(socket, json.data.channel, {'success':true, 'type':'message', 'response':json.data});
             }
@@ -92,8 +99,7 @@ server.on('connection', (socket) => {
 
     socket.on('error', (err) => {
         clients.splice(clients.indexOf(socket), 1);
-        log.debug('Removed client from array');
-        log.debug(err);
+        log.warn(err);
     });
 });
 
