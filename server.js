@@ -3,6 +3,7 @@
 require('dotenv').config();
 const net = require('net');
 const log = require('winston');
+const async = require('async');
 
 const clients = [];
 const authenticated = {};
@@ -33,6 +34,8 @@ server.on('listening', () => {
 });
 
 server.on('connection', (socket) => {
+
+    socket.setNoDelay(true);
 
     socket.name = socket.remoteAddress + ":" + socket.remotePort;
 
@@ -108,12 +111,28 @@ function sendResponse(socket, success, type, data) {
 }
 
 function broadcastToAll(origin, channel, message) {
-    clients.forEach((client) => {
-        if (client != origin) {
-            log.debug('Sent to client');
-            client.write(JSON.stringify(message));
+    let i = 0;
+    async.whilst(
+        () => { return i < clients.length; },
+        callback => {
+            let client = clients[i++];
+            if (client != origin) {
+                client.write(JSON.stringify(message), () => {
+                    setTimeout(() => {
+                        callback(null, i);
+                    }, getRandomInt(200, 300));
+                });
+            } else
+                callback(null, i);
+        },
+        () => {
+            log.debug('Finished broadcasting');
         }
-    });
+    );
+}
+
+function getRandomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
 function isListening(client, channel) {
