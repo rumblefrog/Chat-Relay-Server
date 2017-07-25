@@ -121,7 +121,7 @@ function broadcastToAll(origin, channel, message) {
                 client.write(JSON.stringify(message), () => {
                     setTimeout(() => {
                         callback(null, i);
-                    }, j * 10);
+                    }, j * 20);
                 });
                 if (j >= 10)
                     j = 0;
