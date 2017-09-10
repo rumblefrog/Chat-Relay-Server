@@ -1,7 +1,0 @@
-{
-    "type": "authentication",
-
-    "data": {
-        "token": "12345"
-    }
-}

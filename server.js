@@ -41,9 +41,6 @@ server.on('connection', (socket) => {
 
     clients.push(socket);
 
-    authenticated[socket] = false;
-    channelBindings[socket] = [];
-
     log.info('A client connected');
 
     socket.on('data', (data) => {
@@ -57,33 +54,8 @@ server.on('connection', (socket) => {
             return;
         }
 
-        if (json.type == 'ping') {
-
-            let binded = (!channelBindings || channelBindings[socket].length == 0) ? false : true;
-
-            sendResponse(socket, true, {'authenticated':authenticated[socket], 'binded':binded});
-        }
-
-        if (json.type == 'authentication') {
-            if (json.data.token == process.env.APP_KEY) {
-                log.info('Successfully authenticated client');
-                sendResponse(socket, true, 'authentication', {});
-                authenticated[socket] = true;
-            }
-            else {
-                log.debug('Failed to authenticate client');
-                sendResponse(socket, false, 'authentication', {'error': 'Invalid token'});
-            }
-        }
-
-        if (json.type == 'bindings') {
-            log.info('Successfully binded client');
-            channelBindings[socket] = json.data.bindings;
-            sendResponse(socket, true, 'bindings', `Successfully binded to ${channelBindings[socket].join(', ')}`);
-        }
-
         if (json.type == 'message') {
-            if (!authenticated[socket]) {
+            if (json.token != process.env.APP_KEY) {
                 log.warn('Client attempted to send unauthenticated message');
                 sendResponse(socket, false, 'message', {'error': 'Unauthenticated response'});
             } else {

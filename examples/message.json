@@ -1,9 +1,9 @@
 {
     "type": "message",
-
-    "channel": 1,
+    "token": "1234",
 
     "data": {
+        "channel": 1,
         "origin": "Server #1",
         "origin_type": "game",
         "author": "Fishy",
