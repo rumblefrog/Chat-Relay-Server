@@ -79,7 +79,7 @@ server.on('connection', (socket) => {
 });
 
 function sendResponse(socket, success, type, data) {
-    socket.write(JSON.stringify({'success':success, 'type':type, 'response':data}));
+    socket.write(JSON.stringify({'success':success, 'type':type, 'response':data}) + '\n');
 }
 
 let j = 0;
@@ -90,7 +90,7 @@ function broadcastToAll(origin, channel, message) {
         callback => {
             let client = clients[i++];
             if (client != origin) {
-                client.write(JSON.stringify(message), () => {
+                client.write(JSON.stringify(message) + '\n', () => {
                     setTimeout(() => {
                         callback(null, i);
                     }, j * 20);
