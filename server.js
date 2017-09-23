@@ -82,7 +82,6 @@ function sendResponse(socket, success, type, data) {
     socket.write(JSON.stringify({'success':success, 'type':type, 'response':data}) + '\n');
 }
 
-let j = 0;
 function broadcastToAll(origin, channel, message) {
     let i = 0;
     async.whilst(
@@ -91,14 +90,8 @@ function broadcastToAll(origin, channel, message) {
             let client = clients[i++];
             if (client != origin) {
                 client.write(JSON.stringify(message) + '\n', () => {
-                    setTimeout(() => {
-                        callback(null, i);
-                    }, j * 20);
+                    callback(null, i);
                 });
-                if (j >= 10)
-                    j = 0;
-                else
-                    j++;
             } else
                 callback(null, i);
         },
